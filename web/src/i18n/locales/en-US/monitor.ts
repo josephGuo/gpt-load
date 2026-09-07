@@ -275,7 +275,7 @@ export default {
         totalTokens: 'Total reported tokens',
         persistedWindow: 'Current reporting window',
         estimatedCost: 'Estimated cost',
-        estimatedCostBasis: 'Based on reported tokens',
+        estimatedCostBasis: 'Reported tokens and multipliers at request time',
       },
       tokens: {
         title: 'Reported token categories',
@@ -339,6 +339,7 @@ export default {
         },
         empty: 'No request buckets were returned for this range.',
         hourly: 'Hourly',
+        everyMinutes: 'Every {count} minutes',
         everyHours: 'Every {count} hours',
         daily: 'Daily',
         failureRate: 'Failure rate',
@@ -347,7 +348,7 @@ export default {
       },
       series: {
         title: 'UTC buckets',
-        description: 'Backend aggregates in the selected hourly or daily granularity.',
+        description: 'Usage and cost aggregated at the selected time granularity.',
         caption: 'Usage aggregates by UTC time bucket',
         disclosure: 'View time-bucket details',
       },
@@ -976,6 +977,13 @@ export default {
         partial: 'Token usage is partial',
       },
       receipt: {
+        total: 'Priced total',
+        baseTotal: 'Base priced total',
+        finalTotal: 'Final priced total',
+        totalRounding:
+          'Components are rounded using the original pricing rules and summed. The total is then multiplied by both group and access key multipliers and rounded once to the nearest 0.000000001 USD. Unpriced portions are excluded.',
+        rounding:
+          'Each priced component is rounded to the nearest 0.000000001 USD after all multipliers, then summed. Unpriced portions are excluded.',
         formula: 'Cost calculation',
         input: 'Input',
         output: 'Output',

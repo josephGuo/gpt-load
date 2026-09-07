@@ -266,7 +266,7 @@ export default {
         totalTokens: '已报告 Token 总数',
         persistedWindow: '当前统计窗口',
         estimatedCost: '预估成本',
-        estimatedCostBasis: '基于已报告 Token 估算',
+        estimatedCostBasis: '基于已报告 Token 与请求当时的倍率',
       },
       tokens: {
         title: '已报告 Token 分类',
@@ -323,6 +323,7 @@ export default {
         },
         empty: '该范围内暂无请求时间桶。',
         hourly: '按小时',
+        everyMinutes: '每 {count} 分钟',
         everyHours: '每 {count} 小时',
         daily: '按天',
         failureRate: '失败率',
@@ -331,7 +332,7 @@ export default {
       },
       series: {
         title: 'UTC 时间桶',
-        description: '后端按所选小时或天粒度返回的聚合。',
+        description: '按所选时间粒度统计的用量与成本。',
         caption: '按 UTC 时间桶统计的用量聚合',
         disclosure: '查看时间桶明细',
       },
@@ -953,6 +954,13 @@ export default {
         partial: '当前 Token 用量不完整',
       },
       receipt: {
+        total: '已计价合计',
+        baseTotal: '原始已计价合计',
+        finalTotal: '最终已计价合计',
+        totalRounding:
+          '各计价项按原规则四舍五入后合计，再同时乘以分组和访问密钥倍率，最后四舍五入到 0.000000001 USD；未定价部分不计入合计。',
+        rounding:
+          '各计价项应用全部倍率后四舍五入到 0.000000001 USD，再相加；未定价部分不计入合计。',
         formula: '成本计算',
         input: '输入',
         output: '输出',
