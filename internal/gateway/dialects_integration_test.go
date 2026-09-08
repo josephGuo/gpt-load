@@ -88,6 +88,19 @@ func newDialectGatewayEngineWithForwarder(
 	groups ...dialectGatewayGroup,
 ) (*gin.Engine, *state.CredentialRegistry) {
 	t.Helper()
+	return newDialectGatewayEngineWithSystemSettings(t, selectedProtocol, model, dialects, forwarder, nil, groups...)
+}
+
+func newDialectGatewayEngineWithSystemSettings(
+	t *testing.T,
+	selectedProtocol protocol.Protocol,
+	model string,
+	dialects dialect.Set,
+	forwarder AttemptForwarder,
+	systemSettings config.Settings,
+	groups ...dialectGatewayGroup,
+) (*gin.Engine, *state.CredentialRegistry) {
+	t.Helper()
 	gin.SetMode(gin.TestMode)
 	keyService := encryptiontest.Service(t, "dialect-gateway-test-master-key")
 
@@ -117,6 +130,7 @@ func newDialectGatewayEngineWithForwarder(
 
 	manager := state.NewManager()
 	snapshot, err := manager.Publish(state.CompileInput{
+		SystemSettings:  systemSettings,
 		ChannelRegistry: channel.NewRegistry(), Groups: configs,
 		Credentials: credentialConfigs,
 		AccessKeys: []state.AccessKeyConfig{{
@@ -1072,7 +1086,7 @@ func TestAnthropicGatewayFailover(t *testing.T) {
 	request.Header.Set("Authorization", "Bearer gl-client")
 	recorder = httptest.NewRecorder()
 	engine.ServeHTTP(recorder, request)
-	if recorder.Code != http.StatusBadRequest || clientErrorRequests.Load() != 1 || recorder.Header().Get(debugHeaderAttempts) != "1" {
+	if recorder.Code != http.StatusBadRequest || clientErrorRequests.Load() != 2 || recorder.Header().Get(debugHeaderAttempts) != "2" {
 		t.Fatalf("client error response = %d attempts=%s requests=%d body=%s", recorder.Code, recorder.Header().Get(debugHeaderAttempts), clientErrorRequests.Load(), recorder.Body.String())
 	}
 }

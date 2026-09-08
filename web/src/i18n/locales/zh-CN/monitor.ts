@@ -1,5 +1,6 @@
 export default {
   monitor: {
+    clearKeySearch: '清除密钥搜索',
     title: '监控',
     description: '查看运行健康、请求日志和当前路由决策。',
     help: '查看说明',
@@ -121,8 +122,6 @@ export default {
         failureCategory: '失败原因',
         statusCode: 'HTTP 状态',
         statusUnavailable: '无 HTTP 状态',
-        manualWeight: '手动权重',
-        autoWeight: '自动权重',
         automatic: '自动',
       },
       recovery: {
@@ -325,6 +324,7 @@ export default {
         hourly: '按小时',
         everyMinutes: '每 {count} 分钟',
         everyHours: '每 {count} 小时',
+        everyDays: '每 {count} 天',
         daily: '按天',
         failureRate: '失败率',
         inputTokens: '输入 Token',
@@ -508,19 +508,17 @@ export default {
         columns: {
           credential: '凭据',
           status: '状态',
-          manual: '手动权重',
-          auto: '自动权重',
+          weight: '权重',
           effective: '有效权重',
           cooldown: '冷却到期',
         },
       },
       weights: {
-        manual: '原始手动权重',
-        auto: '原始自动权重',
+        weight: '权重',
         effective: '原始有效权重',
         null: 'null',
         none: '—',
-        groupManual: '分组手动权重 {value}',
+        group: '分组权重 {value}',
       },
       excluded: {
         title: '排除分组',
@@ -581,6 +579,9 @@ export default {
         to: '结束时间',
         quickRanges: '快捷时间范围',
         quick: {
+          today: '今天',
+          yesterday: '昨天',
+          '6h': '6h',
           '1h': '1h',
           '24h': '24h',
           '3d': '3d',

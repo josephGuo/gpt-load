@@ -1,5 +1,14 @@
 export default {
   common: {
+    upstreamUrl: {
+      label: 'Custom upstream URL',
+      default: 'Uses the channel’s official URL by default.',
+      defaults: 'Default URL: {urls}',
+      subscriptionHelp:
+        'Enter an HTTPS root URL with an optional path prefix. The upstream must support the channel’s business APIs; native API paths are appended automatically. OAuth uses official URLs.',
+      invalid:
+        'Enter a valid {protocol} upstream URL without credentials, query parameters, or a fragment',
+    },
     priceMultiplier: {
       label: 'Price multiplier',
       value: 'Multiplier ×{value}',
@@ -268,12 +277,10 @@ export default {
         unlimited: 'Unlimited',
         protocols: 'Protocols',
         allProtocols: 'All protocols',
-        groups: 'Group scope',
-        allGroups: 'All Groups',
         models: 'Model scope',
         allModels: 'All models',
         lastRequest: 'Latest request',
-        neverRequested: 'No requests yet',
+        neverRequested: 'No requests within retention',
         costLimits: {
           title: 'Estimated cost allowance',
           available: 'Available',

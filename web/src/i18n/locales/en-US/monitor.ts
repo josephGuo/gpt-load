@@ -1,5 +1,6 @@
 export default {
   monitor: {
+    clearKeySearch: 'Clear key search',
     title: 'Monitor',
     description: 'Review runtime health, request logs, and current route decisions.',
     help: 'View description',
@@ -125,8 +126,6 @@ export default {
         failureCategory: 'Failure category',
         statusCode: 'HTTP status',
         statusUnavailable: 'No HTTP status',
-        manualWeight: 'Manual weight',
-        autoWeight: 'Automatic weight',
         automatic: 'Automatic',
       },
       recovery: {
@@ -341,6 +340,7 @@ export default {
         hourly: 'Hourly',
         everyMinutes: 'Every {count} minutes',
         everyHours: 'Every {count} hours',
+        everyDays: 'Every {count} days',
         daily: 'Daily',
         failureRate: 'Failure rate',
         inputTokens: 'Input tokens',
@@ -529,19 +529,17 @@ export default {
         columns: {
           credential: 'Credential',
           status: 'Status',
-          manual: 'Manual weight',
-          auto: 'Auto weight',
+          weight: 'Weight',
           effective: 'Effective weight',
           cooldown: 'Cooldown until',
         },
       },
       weights: {
-        manual: 'Raw manual weight',
-        auto: 'Raw automatic weight',
+        weight: 'Weight',
         effective: 'Raw effective weight',
         null: 'null',
         none: '—',
-        groupManual: 'Group manual weight {value}',
+        group: 'Group weight {value}',
       },
       excluded: {
         title: 'Excluded Groups',
@@ -603,6 +601,9 @@ export default {
         to: 'To',
         quickRanges: 'Quick time ranges',
         quick: {
+          today: 'Today',
+          yesterday: 'Yesterday',
+          '6h': '6h',
           '1h': '1h',
           '24h': '24h',
           '3d': '3d',

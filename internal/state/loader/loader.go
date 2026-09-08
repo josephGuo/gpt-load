@@ -525,9 +525,10 @@ func decodeSettingValue(raw string) (any, error) {
 	return value, nil
 }
 
-func isInternalSystemSetting(key string) bool {
+func isIgnoredSystemSetting(key string) bool {
 	return strings.HasPrefix(key, models.InternalSystemSettingPrefix) ||
-		key == outboundproxy.SystemSettingKey
+		key == outboundproxy.SystemSettingKey ||
+		key == "contact_info" // 兼容本分支旧版本保存的已移除设置。
 }
 
 // LoadSystemSettings reads only the persisted system settings used to compile a draft Group.
@@ -573,7 +574,7 @@ func LoadSystemSettingsAndProxy(
 func MapSystemSettings(rows []models.SystemSetting) (config.Settings, error) {
 	settings := make(config.Settings, len(rows))
 	for _, row := range rows {
-		if isInternalSystemSetting(row.Key) {
+		if isIgnoredSystemSetting(row.Key) {
 			continue
 		}
 		value, err := decodeSettingValue(row.Value)
@@ -604,7 +605,7 @@ func mapSystemAndGroups(
 			input.GlobalProxy = config
 			continue
 		}
-		if isInternalSystemSetting(row.Key) {
+		if isIgnoredSystemSetting(row.Key) {
 			continue
 		}
 		value, err := decodeSettingValue(row.Value)
@@ -792,8 +793,7 @@ func mapCredentials(rows []models.Credential, groups []models.Group) []state.Cre
 				target.params,
 			),
 			Fingerprint: row.Fingerprint, WeightManual: cloneWeight(row.WeightManual),
-			WeightAuto: state.DefaultWeight,
-			Status:     state.CredentialStatus(row.Status), AuthState: state.CredentialAuthState(row.AuthState), EncryptedValue: row.Data,
+			Status: state.CredentialStatus(row.Status), AuthState: state.CredentialAuthState(row.AuthState), EncryptedValue: row.Data,
 		})
 	}
 	return result

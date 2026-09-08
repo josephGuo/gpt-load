@@ -1,5 +1,6 @@
 export default {
   monitor: {
+    clearKeySearch: 'キー検索をクリア',
     title: 'モニター',
     description: 'ランタイムの健全性、リクエストログ、現在のルート判断を確認します。',
     help: '説明を表示',
@@ -125,8 +126,6 @@ export default {
         failureCategory: '失敗理由',
         statusCode: 'HTTP ステータス',
         statusUnavailable: 'HTTP ステータスなし',
-        manualWeight: '手動ウェイト',
-        autoWeight: '自動ウェイト',
         automatic: '自動',
       },
       recovery: {
@@ -341,6 +340,7 @@ export default {
         hourly: '時間別',
         everyMinutes: '{count}分ごと',
         everyHours: '{count}時間ごと',
+        everyDays: '{count} 日ごと',
         daily: '日別',
         failureRate: '失敗率',
         inputTokens: '入力 Token',
@@ -527,19 +527,17 @@ export default {
         columns: {
           credential: '認証情報',
           status: '状態',
-          manual: '手動ウェイト',
-          auto: '自動ウェイト',
+          weight: 'ウェイト',
           effective: '有効ウェイト',
           cooldown: 'クールダウン期限',
         },
       },
       weights: {
-        manual: '生の手動ウェイト',
-        auto: '生の自動ウェイト',
+        weight: 'ウェイト',
         effective: '生の有効ウェイト',
         null: 'null',
         none: '—',
-        groupManual: 'グループ手動ウェイト {value}',
+        group: 'グループウェイト {value}',
       },
       excluded: {
         title: '除外グループ',
@@ -602,6 +600,9 @@ export default {
         to: '終了時刻',
         quickRanges: 'クイック時間範囲',
         quick: {
+          today: '今日',
+          yesterday: '昨日',
+          '6h': '6h',
           '1h': '1h',
           '24h': '24h',
           '3d': '3d',
