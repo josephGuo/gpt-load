@@ -85,6 +85,47 @@ func TestIteratorDoesNotLetConvertedPreferenceBypassNativeTier(t *testing.T) {
 	}
 }
 
+func TestImagesGenerationPrefersNativeBeforeGeminiConversions(t *testing.T) {
+	snapshot, err := state.Compile(state.CompileInput{
+		ChannelRegistry: channel.NewRegistry(),
+		Groups: []state.GroupConfig{
+			{ID: 1, ChannelID: channel.Antigravity, ConnectionType: "subscription", Params: json.RawMessage(`{}`),
+				Models: []state.ModelConfig{{ID: "gemini-3.1-flash-image", Alias: "public"}}, Enabled: true},
+			{ID: 2, ChannelID: channel.OpenAI, ConnectionType: "api_key", Params: json.RawMessage(`{}`),
+				Models: []state.ModelConfig{{ID: "gpt-image-2", Alias: "public"}}, Enabled: true},
+			{ID: 3, ChannelID: channel.Gemini, ConnectionType: "api_key", Params: json.RawMessage(`{}`),
+				Models: []state.ModelConfig{{ID: "gemini-3.1-flash-image", Alias: "public"}}, Enabled: true},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	iterator := New(snapshot, fakeCredentialSource{keys: []state.CredentialMeta{
+		{ID: 11, GroupID: 1}, {ID: 21, GroupID: 2}, {ID: 31, GroupID: 3},
+	}}, Query{
+		ClientProtocol: protocol.OpenAIImages, Operation: execution.OperationImagesGenerate,
+		RouteRequirement: execution.RouteRequirementAny, ExternalModel: modelPointer("public"),
+		PreferredCredentialID: 11,
+	})
+	first, err := iterator.Next()
+	if err != nil || first.GroupID != 2 || first.RouteMode != channel.RouteNative {
+		t.Fatalf("first selection = %+v, error = %v", first, err)
+	}
+	second, err := iterator.Next()
+	if err != nil || second.GroupID != 1 || second.RouteMode != channel.RouteConverted ||
+		second.UpstreamModelID == nil || *second.UpstreamModelID != "gemini-3.1-flash-image" {
+		t.Fatalf("second selection = %+v, error = %v", second, err)
+	}
+	third, err := iterator.Next()
+	if err != nil || third.GroupID != 3 || third.RouteMode != channel.RouteConverted ||
+		third.UpstreamModelID == nil || *third.UpstreamModelID != "gemini-3.1-flash-image" {
+		t.Fatalf("third selection = %+v, error = %v", third, err)
+	}
+	if got := snapshot.ExecutionCandidates[protocol.OpenAIImages][execution.OperationImagesEdit]["public"]; len(got) != 1 || got[0].GroupID != 2 {
+		t.Fatalf("image edits targets = %+v", got)
+	}
+}
+
 func TestIteratorSkipGroupAndAllowedCredentialIDsApplyAcrossRouteTiers(t *testing.T) {
 	t.Parallel()
 
@@ -245,7 +286,7 @@ func TestRouteRequirementKeepsStatefulResponsesOnNativeTargets(t *testing.T) {
 	}
 }
 
-func TestStatefulResponsesCreateRequiresLifecycleTargetEvenWhenWireIsNative(t *testing.T) {
+func TestResponsesContinuationSeparatesStorageFromOtherResourceRequirements(t *testing.T) {
 	t.Parallel()
 
 	snapshot, err := state.Compile(state.CompileInput{
@@ -263,6 +304,14 @@ func TestStatefulResponsesCreateRequiresLifecycleTargetEvenWhenWireIsNative(t *t
 				Params: json.RawMessage(`{}`), Enabled: true,
 				Models: []state.ModelConfig{{ID: "grok", Alias: "gpt"}},
 			},
+			{ConnectionType: "subscription", ID: 10, Name: "codex", ChannelID: channel.Codex,
+				Params: json.RawMessage(`{}`), Enabled: true,
+				Models: []state.ModelConfig{{ID: "gpt-codex", Alias: "gpt"}},
+			},
+			{ConnectionType: "api_key", ID: 11, Name: "converted", ChannelID: channel.Anthropic,
+				Params: json.RawMessage(`{}`), Enabled: true,
+				Models: []state.ModelConfig{{ID: "claude", Alias: "gpt"}},
+			},
 		},
 	})
 	if err != nil {
@@ -278,6 +327,39 @@ func TestStatefulResponsesCreateRequiresLifecycleTargetEvenWhenWireIsNative(t *t
 	})
 	if !slices.Equal(got, []uint{7}) {
 		t.Fatalf("CandidateGroupIDsForQuery() = %#v, want lifecycle-capable OpenAI group [7]", got)
+	}
+	for _, test := range []struct {
+		name   string
+		fields string
+		want   []uint
+	}{
+		{"continuation", `,"input":"continue"`, []uint{7, 9}},
+		{"unstored next response", `,"store":false`, []uint{7, 9}},
+		{"conversation", `,"conversation":"conv_1"`, []uint{7}},
+		{"background", `,"background":true`, []uint{7}},
+		{"stored prompt", `,"prompt":{"id":"pmpt_1"}`, []uint{7}},
+		{"input reference", `,"input":[{"type":"item_reference","id":"item_1"}]`, []uint{7}},
+		{"file search", `,"tools":[{"type":"file_search","vector_store_ids":["vs_1"]}]`, []uint{7}},
+		{"null store", `,"store":null`, []uint{7}},
+		{"invalid store", `,"store":"invalid"`, []uint{7}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			metadata, err := dialect.NewOpenAIResponses().InspectRequest(&dialect.ParsedRequest{
+				Method: http.MethodPost, Path: "/v1/responses",
+				Body: []byte(`{"model":"gpt","previous_response_id":"resp_1"` + test.fields + `}`),
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			query := Query{
+				ClientProtocol: protocol.OpenAIResponses, Operation: metadata.Operation,
+				RouteRequirement: metadata.RouteRequirement, ResponsesStorePreference: metadata.ResponsesStorePreference,
+				ExternalModel: metadata.Model,
+			}
+			if got := CandidateGroupIDsForQuery(snapshot, query); !slices.Equal(got, test.want) {
+				t.Fatalf("candidate groups = %v, want %v", got, test.want)
+			}
+		})
 	}
 }
 
