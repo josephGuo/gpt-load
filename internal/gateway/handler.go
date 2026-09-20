@@ -16,6 +16,8 @@ import (
 
 	"gpt-load/internal/accessquota"
 	"gpt-load/internal/affinity"
+	"gpt-load/internal/automodel"
+	"gpt-load/internal/catalog"
 	"gpt-load/internal/channel"
 	"gpt-load/internal/connection"
 	"gpt-load/internal/dialect"
@@ -86,7 +88,10 @@ type runtimeCredentialRegistry interface {
 }
 
 type Handler struct {
+	autoTasks           autoTaskCache
+	decisionClient      autoDecisionRunner
 	manager             *state.Manager
+	catalog             *catalog.Runtime
 	channels            *channel.Registry
 	subscriptions       *subscriptionruntime.Runtime
 	registry            runtimeCredentialRegistry
@@ -212,6 +217,7 @@ func NewHandlerWithLifecycle(
 	accessQuota *accessquota.Runtime,
 	lifecycle *httplifecycle.Coordinator,
 	responseBindings *state.ResponseBindings,
+	catalogRuntime *catalog.Runtime,
 ) *Handler {
 	handler := NewHandler(
 		manager,
@@ -234,6 +240,7 @@ func NewHandlerWithLifecycle(
 	}
 	handler.lifecycle = lifecycle
 	handler.responseBindings = responseBindings
+	handler.catalog = catalogRuntime
 	return handler
 }
 
@@ -590,6 +597,35 @@ func (handler *Handler) Handle(ginContext *gin.Context) {
 		recorder.completeCanceled(ginContext.Request.Context(), 0, -1)
 		return
 	}
+	recorder.setClientModel(model)
+	var boundAuto *automodel.Selection
+	autoQuery := scheduler.Query{}
+	if metadata.PreviousResponseID != "" {
+		binding, found := handler.responseBindings.Lookup(accessKey.ID, metadata.PreviousResponseID)
+		if !found {
+			handler.completeReason(ginContext, recorder, reasonResponseBindingNotFound)
+			return
+		}
+		boundAuto = binding.AutoSelection
+		autoQuery.AllowedCredentialRefs = map[uint]state.CredentialRef{binding.CredentialID: {
+			ID: binding.CredentialID, GroupID: binding.GroupID, IdentityGeneration: binding.IdentityGeneration,
+		}}
+	}
+	if _, automatic := snapshot.AutoModels.Lookup(model); automatic {
+		ctx := ginContext.Request.Context()
+		var failure *reason
+		parsed, metadata, recorder.autoDecision, failure = handler.prepareAutoModel(ctx, snapshot, accessKey, selectedDialect, parsed, metadata, boundAuto, func() *reason {
+			return handler.admitAutoQuota(snapshot, quotaAdmission)
+		}, autoQuery)
+		if failure != nil {
+			handler.completeReason(ginContext, recorder, *failure)
+			return
+		}
+		if ctx.Err() != nil {
+			recorder.completeCanceled(ctx, 0, -1)
+			return
+		}
+	}
 	query := scheduler.Query{
 		ClientProtocol:           selectedRoute.Protocol,
 		Operation:                metadata.Operation,
@@ -604,7 +640,6 @@ func (handler *Handler) Handle(ginContext *gin.Context) {
 	for _, ref := range capturedRefs {
 		allowedCredentialRefs[ref.ID] = ref
 	}
-	recorder.setClientModel(model)
 	recorder.setOperation(metadata.Operation)
 	recorder.setStream(metadata.Stream)
 	recorder.setReasoning(metadata.Reasoning)
@@ -868,10 +903,14 @@ func (handler *Handler) executeAttempts(
 		if operation == execution.OperationWebSearch {
 			return prepared
 		}
+		routeModel := externalModel
+		if recorder.autoDecision != nil {
+			routeModel = recorder.autoDecision.Selection.TargetModel
+		}
 		body, applied, err := selection.Group.ParameterOverrides.Apply(
 			selectedDialect.Protocol(),
 			originalMetadata.Operation,
-			externalModel,
+			routeModel,
 			parsed.Body,
 		)
 		if err != nil {
@@ -1192,7 +1231,7 @@ func (handler *Handler) executeAttempts(
 			ProxyFingerprint:       proxyFingerprint,
 			ForceCredentialRefresh: forceCredentialRefresh,
 			ContinuityKey:          requestAffinity.continuityKey,
-			OnResponse:             handler.responseBindingObserver(recorder.accessKeyID, selection, ref, prepared.request),
+			OnResponse:             handler.responseBindingObserver(recorder.accessKeyID, selection, ref, prepared.request, recorder.autoSelection()),
 			OnFirstResponse: func() {
 				recorder.recordFirstResponse()
 			},
