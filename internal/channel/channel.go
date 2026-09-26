@@ -45,6 +45,7 @@ const (
 	Alibaba          = spec.Alibaba
 	Volcengine       = spec.Volcengine
 	OpenRouter       = spec.OpenRouter
+	Cline            = spec.Cline
 	Jev              = spec.Jev
 	Groq             = spec.Groq
 	XAI              = spec.XAI
@@ -55,6 +56,8 @@ const (
 	Wafer            = spec.Wafer
 	HuggingFace      = spec.HuggingFace
 	Cohere           = spec.Cohere
+	OpenCodeGo       = spec.OpenCodeGo
+	OpenCodeZen      = spec.OpenCodeZen
 )
 
 // InputKind describes how a field is collected without exposing its value.
@@ -218,6 +221,7 @@ const (
 	ProviderGemini               = spec.ProviderGemini
 	ProviderMultiProtocolGateway = spec.ProviderMultiProtocolGateway
 	ProviderOpenAICompatible     = spec.ProviderOpenAICompatible
+	ProviderCline                = spec.ProviderCline
 	ProviderAzureOpenAI          = spec.ProviderAzureOpenAI
 	ProviderAWSBedrock           = spec.ProviderAWSBedrock
 	ProviderGoogleVertex         = spec.ProviderGoogleVertex
